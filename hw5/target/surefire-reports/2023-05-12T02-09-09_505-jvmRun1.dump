@@ -1,0 +1,131 @@
+# Created at 2023-05-12T02:09:46.455
+<<exit>> <<1>>
+
+
+# Created at 2023-05-12T02:09:46.456
+System.exit() or native command error interrupted process checker.
+java.lang.IllegalStateException: error [STOPPED] to read process 19584
+	at org.apache.maven.surefire.booter.PpidChecker.checkProcessInfo(PpidChecker.java:148)
+	at org.apache.maven.surefire.booter.PpidChecker.isProcessAlive(PpidChecker.java:125)
+	at org.apache.maven.surefire.booter.ForkedBooter$2.run(ForkedBooter.java:278)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:630)
+	at java.base/java.lang.Thread.run(Thread.java:831)
+
+
+# Created at 2023-05-12T02:09:46.458
+Exiting self fork JVM. Received SHUTDOWN command from Maven shutdown hook.
+Thread dump before exiting the process (4504@DESKTOP-L4D66TO):
+"main" 
+   java.lang.Thread.State: RUNNABLE
+        at java.base@16.0.1/sun.nio.ch.SocketDispatcher.read0(Native Method)
+        at java.base@16.0.1/sun.nio.ch.SocketDispatcher.read(SocketDispatcher.java:46)
+        at java.base@16.0.1/sun.nio.ch.NioSocketImpl.tryRead(NioSocketImpl.java:261)
+        at java.base@16.0.1/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:312)
+        at java.base@16.0.1/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:350)
+        at java.base@16.0.1/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:803)
+        at java.base@16.0.1/java.net.Socket$SocketInputStream.read(Socket.java:976)
+        at app//com.microsoft.sqlserver.jdbc.TDSChannel$ProxyInputStream.readInternal(IOBuffer.java:1019)
+        at app//com.microsoft.sqlserver.jdbc.TDSChannel$ProxyInputStream.read(IOBuffer.java:1009)
+        at java.base@16.0.1/sun.security.ssl.SSLSocketInputRecord.read(SSLSocketInputRecord.java:478)
+        at java.base@16.0.1/sun.security.ssl.SSLSocketInputRecord.readHeader(SSLSocketInputRecord.java:472)
+        at java.base@16.0.1/sun.security.ssl.SSLSocketInputRecord.bytesInCompletePacket(SSLSocketInputRecord.java:70)
+        at java.base@16.0.1/sun.security.ssl.SSLSocketImpl.readApplicationRecord(SSLSocketImpl.java:1444)
+        at java.base@16.0.1/sun.security.ssl.SSLSocketImpl$AppInputStream.read(SSLSocketImpl.java:1048)
+        at app//com.microsoft.sqlserver.jdbc.TDSChannel.read(IOBuffer.java:2058)
+        at app//com.microsoft.sqlserver.jdbc.TDSReader.readPacket(IOBuffer.java:6617)
+        at app//com.microsoft.sqlserver.jdbc.TDSCommand.startResponse(IOBuffer.java:7803)
+        at app//com.microsoft.sqlserver.jdbc.SQLServerStatement.doExecuteStatement(SQLServerStatement.java:870)
+        at app//com.microsoft.sqlserver.jdbc.SQLServerStatement$StmtExecCmd.doExecute(SQLServerStatement.java:767)
+        at app//com.microsoft.sqlserver.jdbc.TDSCommand.execute(IOBuffer.java:7418)
+        at app//com.microsoft.sqlserver.jdbc.SQLServerConnection.executeCommand(SQLServerConnection.java:3272)
+        at app//com.microsoft.sqlserver.jdbc.SQLServerStatement.executeCommand(SQLServerStatement.java:247)
+        at app//com.microsoft.sqlserver.jdbc.SQLServerStatement.executeStatement(SQLServerStatement.java:222)
+        at app//com.microsoft.sqlserver.jdbc.SQLServerStatement.execute(SQLServerStatement.java:743)
+        at app//flightapp.TestUtils.dropTablesWithOptionalSuffix(TestUtils.java:52)
+        at app//flightapp.FlightServiceTest.setup(FlightServiceTest.java:355)
+        at java.base@16.0.1/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base@16.0.1/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:78)
+        at java.base@16.0.1/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base@16.0.1/java.lang.reflect.Method.invoke(Method.java:567)
+        at app//org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+        at app//org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+        at app//org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+        at app//org.junit.internal.runners.statements.RunBefores.invokeMethod(RunBefores.java:33)
+        at app//org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:24)
+        at app//org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+        at app//org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+        at app//org.apache.maven.surefire.junit4.JUnit4Provider.execute(JUnit4Provider.java:364)
+        at app//org.apache.maven.surefire.junit4.JUnit4Provider.executeWithRerun(JUnit4Provider.java:272)
+        at app//org.apache.maven.surefire.junit4.JUnit4Provider.executeTestSet(JUnit4Provider.java:237)
+        at app//org.apache.maven.surefire.junit4.JUnit4Provider.invoke(JUnit4Provider.java:158)
+        at app//org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:428)
+        at app//org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+        at app//org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:562)
+        at app//org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:548)
+
+"Reference Handler" 
+   java.lang.Thread.State: RUNNABLE
+        at java.base@16.0.1/java.lang.ref.Reference.waitForReferencePendingList(Native Method)
+        at java.base@16.0.1/java.lang.ref.Reference.processPendingReferences(Reference.java:243)
+        at java.base@16.0.1/java.lang.ref.Reference$ReferenceHandler.run(Reference.java:215)
+
+"Finalizer" 
+   java.lang.Thread.State: WAITING
+        at java.base@16.0.1/java.lang.Object.wait(Native Method)
+        at java.base@16.0.1/java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:155)
+        at java.base@16.0.1/java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:176)
+        at java.base@16.0.1/java.lang.ref.Finalizer$FinalizerThread.run(Finalizer.java:171)
+
+"Signal Dispatcher" 
+   java.lang.Thread.State: RUNNABLE
+
+"Attach Listener" 
+   java.lang.Thread.State: RUNNABLE
+
+"Notification Thread" 
+   java.lang.Thread.State: RUNNABLE
+
+"Common-Cleaner" 
+   java.lang.Thread.State: TIMED_WAITING
+        at java.base@16.0.1/java.lang.Object.wait(Native Method)
+        at java.base@16.0.1/java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:155)
+        at java.base@16.0.1/jdk.internal.ref.CleanerImpl.run(CleanerImpl.java:140)
+        at java.base@16.0.1/java.lang.Thread.run(Thread.java:831)
+        at java.base@16.0.1/jdk.internal.misc.InnocuousThread.run(InnocuousThread.java:134)
+
+"surefire-forkedjvm-command-thread" 
+   java.lang.Thread.State: RUNNABLE
+        at java.management@16.0.1/sun.management.ThreadImpl.getThreadInfo1(Native Method)
+        at java.management@16.0.1/sun.management.ThreadImpl.getThreadInfo(ThreadImpl.java:197)
+        at app//org.apache.maven.surefire.booter.ForkedBooter.generateThreadDump(ForkedBooter.java:649)
+        at app//org.apache.maven.surefire.booter.ForkedBooter.access$400(ForkedBooter.java:82)
+        at app//org.apache.maven.surefire.booter.ForkedBooter$4.update(ForkedBooter.java:340)
+        at app//org.apache.maven.surefire.booter.CommandReader$CommandRunnable.callListeners(CommandReader.java:423)
+        at app//org.apache.maven.surefire.booter.CommandReader$CommandRunnable.exitByConfiguration(CommandReader.java:435)
+        at app//org.apache.maven.surefire.booter.CommandReader$CommandRunnable.run(CommandReader.java:388)
+        at java.base@16.0.1/java.lang.Thread.run(Thread.java:831)
+
+"surefire-forkedjvm-ping-30s" 
+   java.lang.Thread.State: RUNNABLE
+        at java.base@16.0.1/java.lang.System.currentTimeMillis(Native Method)
+        at java.base@16.0.1/java.text.SimpleDateFormat.initializeDefaultCentury(SimpleDateFormat.java:900)
+        at java.base@16.0.1/java.text.SimpleDateFormat.initialize(SimpleDateFormat.java:667)
+        at java.base@16.0.1/java.text.SimpleDateFormat.<init>(SimpleDateFormat.java:625)
+        at java.base@16.0.1/java.text.SimpleDateFormat.<init>(SimpleDateFormat.java:600)
+        at app//org.apache.maven.surefire.api.util.internal.DumpFileUtils.createWriter(DumpFileUtils.java:118)
+        at app//org.apache.maven.surefire.api.util.internal.DumpFileUtils.dumpException(DumpFileUtils.java:70)
+        at app//org.apache.maven.surefire.api.booter.DumpErrorSingleton.dumpException(DumpErrorSingleton.java:61)
+        at app//org.apache.maven.surefire.booter.ForkedBooter$2.run(ForkedBooter.java:294)
+        at java.base@16.0.1/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+        at java.base@16.0.1/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)
+        at java.base@16.0.1/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+        at java.base@16.0.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130)
+        at java.base@16.0.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:630)
+        at java.base@16.0.1/java.lang.Thread.run(Thread.java:831)
+
+
+

@@ -1,0 +1,22 @@
+One thing I learned:
+I learned how to use PrepareStatements to retrieve ResultSets from a database into a Java program safely.
+
+One thing that surprised me:
+The way that you can securely store the salt alongside the salted hash inside of a table in order to
+later verify plaintext passwords was extremely interesting to me.
+
+A question I still have:
+How could a user connect with this Java program in order to search flights? What is a more efficient way
+to filter my results?
+
+Did I use the debugging technique I described in my HW3 writeup?
+Yes!
+
+One bug I had in an M1 query:
+I had a bug that caused the query to fail and throw an exception when ran, due to me trying to get a columnn label
+that did not exist. Since it was in a try-catch structure that printed the stacktrace on error,
+it printed the area of SQL that had the problem. Finally, I was able to look at how I was referencing my column labels
+in my SELECT statement, and created aliases for each column label that I could use later for different Flights!
+
+I would like to see the ability to order the results of the Itineraries based on different attributes.
+i.e. sort by capacity, price, etc.

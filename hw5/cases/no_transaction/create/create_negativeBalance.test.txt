@@ -1,0 +1,11 @@
+# Verify negative balance is caught
+
+# commands to execute:
+create user1 user1 -100
+quit
+*
+
+# expected output from those commands:
+Failed to create user
+Goodbye
+*

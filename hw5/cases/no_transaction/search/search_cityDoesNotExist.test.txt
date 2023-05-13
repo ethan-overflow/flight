@@ -1,0 +1,21 @@
+# Verify that failing a search works correctly for both direct and indirect filter
+
+# commands:
+search "Seattle WA" "Narnia ZZ" 1 1 1
+search "Narnia ZZ" "Seattle WA" 1 1 1
+search "Narnia ZZ" "Narnia ZZ" 1 1 1
+search "Seattle WA" "Narnia ZZ" 0 1 1
+search "Narnia ZZ" "Seattle WA" 0 1 1
+search "Narnia ZZ" "Narnia ZZ" 0 1 1
+quit
+*
+
+# expected command output:
+No flights match your selection
+No flights match your selection
+No flights match your selection
+No flights match your selection
+No flights match your selection
+No flights match your selection
+Goodbye
+*
