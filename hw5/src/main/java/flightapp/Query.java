@@ -197,6 +197,7 @@ public class Query extends QueryAbstract {
   public String transaction_createCustomer(String username, String password, int initAmount) {
     final String failure = "Failed to create user\n";
     final String success = "Created user " + username + "\n";
+
     // Validate input
     if (username.length() < 1 || initAmount < 0) {
       return failure;
@@ -390,10 +391,12 @@ public class Query extends QueryAbstract {
 
     // If filtered by direct, just return the direct ones
     if (directFlight) {
+      Collections.sort(directItins);
       return initializeItineraries(directItins);
     } else {
       // If indirect Itineraries are allowed, but there are enough direct Itineraries to show
       if (directItins.size() == numberOfItineraries) {
+        Collections.sort(directItins);
         return initializeItineraries(directItins);
       }
       // Figure out how many indirect Itineraries to include
@@ -496,7 +499,7 @@ public class Query extends QueryAbstract {
   private boolean flightIsFull(int fid) throws SQLException {
     int numReserved = getReservationCountForFLight(fid);
     int capacity = checkFlightCapacity(fid);
-    return numReserved == capacity;
+    return numReserved >= capacity;
   }
 
   /**
@@ -545,11 +548,10 @@ public class Query extends QueryAbstract {
     if (!itineraryToBook.isDirect) {
       secondFid = itineraryToBook.flight2.fid;
     }
-    // TODO Check capacity/num reservations
-    /*
+
     try {
       boolean firstFlightFull = flightIsFull(firstFid);
-      boolean secondFlightFull = true;
+      boolean secondFlightFull = false;
       if (secondFid != null) {
         secondFlightFull = flightIsFull(secondFid);
       }
@@ -560,7 +562,6 @@ public class Query extends QueryAbstract {
       return failure;
     }
 
-     */
 
 
     boolean success = createReservation(loggedInUser, nextResId, firstFid, secondFid);
@@ -876,22 +877,44 @@ public class Query extends QueryAbstract {
 
     @Override
     public int compareTo(Itinerary o) {
+      // Direct vs direct
       if (this.isDirect && o.isDirect) {
-        return Integer.compare(this.flight1.time, o.flight1.time);
+        int result = Integer.compare(this.flight1.time, o.flight1.time);
+        if (result == 0) {
+          return Integer.compare(this.flight1.fid, o.flight1.fid);
+        }
+        return result;
       }
+      // Direct vs Indirect
       else if (this.isDirect) {
-        return Integer.compare(this.flight1.time, o.flight1.time + o.flight2.time);
+        int result = Integer.compare(this.flight1.time, o.flight1.time + o.flight2.time);
+        if (result == 0) {
+          return Integer.compare(this.flight1.fid, o.flight1.fid);
+        }
+        return result;
       }
+      // Indirect vs direct
       else if (o.isDirect) {
-        return Integer.compare(this.flight1.time + this.flight2.time, o.flight1.time);
+        int result = Integer.compare(this.flight1.time + this.flight2.time, o.flight1.time);
+        if (result == 0) {
+          return Integer.compare(this.flight1.fid, o.flight1.fid);
+        }
+        return result;
       }
       // both indirect
       else {
-        return Integer.compare(this.flight1.time + this.flight2.time,
-                               o.flight1.time + o.flight2.time);
+        int result = Integer.compare(this.flight1.time + this.flight2.time,
+                                     o.flight1.time + o.flight2.time);
+        if (result == 0) {
+          int fidResult = Integer.compare(this.flight1.fid, o.flight1.fid);
+          if (fidResult == 0) {
+            return Integer.compare(this.flight2.fid, o.flight2.fid);
+          }
+          return fidResult;
+        }
+        return  result;
       }
     }
-
   }
 
   class Reservation {
