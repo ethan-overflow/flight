@@ -4,7 +4,6 @@ import javax.naming.spi.ResolveResult;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 
@@ -20,13 +19,24 @@ public class Query extends QueryAbstract {
   private static final String FLIGHT_PRICE_SQL = "SELECT price FROM FLIGHTS WHERE fid = ?";
   private static final String SET_BALANCE_SQL = "UPDATE Users_pricecs SET balance = ? WHERE username = ?";
   private static final String SET_RESERVATION_PAID_SQL = "UPDATE Reservations_pricecs SET is_paid = 1 " +
-                                                         "WHERE reservation_id = ? AND username = ?";
+          "WHERE reservation_id = ? AND username = ?";
   private static final String RESERVATION_COUNT_SQL = "SELECT COUNT(*) AS res_count " +
-                                                      "FROM Reservations_pricecs " +
-                                                      "WHERE (first_fid = ? OR second_fid = ?)";
+          "FROM Reservations_pricecs " +
+          "WHERE (first_fid = ? OR second_fid = ?)";
   private static final String CLEAR_USERS = "DELETE FROM Users_pricecs";
   private static final String CLEAR_RESERVATIONS = "DELETE FROM Reservations_pricecs";
 
+  private static final String F1_SELECT_ATTRIBUTES =
+          "F1.fid AS F1_fid,F1.day_of_month AS F1_day_of_month,F1.carrier_id AS F1_carrier_id," +
+                  "F1.flight_num AS F1_flight_num,F1.origin_city AS F1_origin_city," +
+                  "F1.dest_city AS F1_dest_city,F1.actual_time AS F1_actual_time," +
+                  "F1.capacity AS F1_capacity,F1.price AS F1_price";
+
+  private final String F2_SELECT_ATTRIBUTES =
+          "F2.fid AS F2_fid,F2.day_of_month AS F2_day_of_month,F2.carrier_id AS F2_carrier_id," +
+                  "F2.flight_num AS F2_flight_num,F2.origin_city AS F2_origin_city," +
+                  "F2.dest_city AS F2_dest_city,F2.actual_time AS F2_actual_time," +
+                  "F2.capacity AS F2_capacity,F2.price AS F2_price, F1.actual_time + F2.actual_time AS total_time";
   private PreparedStatement flightCapacityStmt;
   private PreparedStatement userBalanceStmt;
   private PreparedStatement flightPriceStmt;
@@ -42,16 +52,7 @@ public class Query extends QueryAbstract {
   private boolean loggedIn = false;
   private String loggedInUser = null;
   private HashMap<Integer, Itinerary> recentItineraryResults;
-  private final String F1_SELECT_ATTRIBUTES =
-          "F1.fid AS F1_fid,F1.day_of_month AS F1_day_of_month,F1.carrier_id AS F1_carrier_id," +
-          "F1.flight_num AS F1_flight_num,F1.origin_city AS F1_origin_city," +
-          "F1.dest_city AS F1_dest_city,F1.actual_time AS F1_actual_time," +
-          "F1.capacity AS F1_capacity,F1.price AS F1_price";
-  private final String F2_SELECT_ATTRIBUTES =
-          "F2.fid AS F2_fid,F2.day_of_month AS F2_day_of_month,F2.carrier_id AS F2_carrier_id," +
-          "F2.flight_num AS F2_flight_num,F2.origin_city AS F2_origin_city," +
-          "F2.dest_city AS F2_dest_city,F2.actual_time AS F2_actual_time," +
-          "F2.capacity AS F2_capacity,F2.price AS F2_price, F1.actual_time + F2.actual_time AS total_time";
+
   protected Query() throws SQLException, IOException {
     recentItineraryResults = new HashMap<>();
     prepareStatements();
@@ -59,7 +60,7 @@ public class Query extends QueryAbstract {
 
   /**
    * Clear the data in any custom tables created.
-   * 
+   *
    * WARNING! Do not drop any tables and do not clear the flights table.
    */
   public void clearTables() {
@@ -151,19 +152,16 @@ public class Query extends QueryAbstract {
    * @param username to check if exists in Users table
    * @return true if user already exists, false otherwise
    */
-  private boolean userExists(String username) {
+  private boolean userExists(String username) throws SQLException {
     int userExists = 0;
     String checkUsernameQuery = "SELECT Count(username) AS 'exists' FROM Users_pricecs WHERE username = ?";
-    try {
-      PreparedStatement givenUsernameCountStmt = conn.prepareStatement(checkUsernameQuery);
-      givenUsernameCountStmt.setString(1, username);
-      ResultSet usernameCountResult = givenUsernameCountStmt.executeQuery();
-      usernameCountResult.next();
-      userExists = usernameCountResult.getInt("exists");
-      usernameCountResult.close();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    PreparedStatement givenUsernameCountStmt = conn.prepareStatement(checkUsernameQuery);
+    givenUsernameCountStmt.setString(1, username);
+    ResultSet usernameCountResult = givenUsernameCountStmt.executeQuery();
+    usernameCountResult.next();
+    userExists = usernameCountResult.getInt("exists");
+    usernameCountResult.close();
+
     if (userExists > 1) {
       System.out.println("Something is seriously wrong... (multiple identical usernames in table)");
       System.exit(0);
@@ -171,17 +169,21 @@ public class Query extends QueryAbstract {
     return userExists == 1;
   }
 
-  private void insertUser(String username, byte[] saltyHash, int initAmount) {
+  /**
+   * Creates a new user in the Users table
+   * @param username unique username for User
+   * @param saltyHash the password after being salted and hashed, in bytes and prefixed by the salt
+   * @param initAmount Initial balance for user to be inserted with
+   * @throws SQLException on SQL Execution error
+   */
+  private void insertUser(String username, byte[] saltyHash, int initAmount) throws SQLException {
     String insertQuery = "INSERT INTO Users_pricecs VALUES(?, ?, ?)";
-    try {
-      PreparedStatement insertStmt = conn.prepareStatement(insertQuery);
-      insertStmt.setString(1, username);
-      insertStmt.setBytes(2, saltyHash);
-      insertStmt.setInt(3, initAmount);
-      insertStmt.execute();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+
+    PreparedStatement insertStmt = conn.prepareStatement(insertQuery);
+    insertStmt.setString(1, username);
+    insertStmt.setBytes(2, saltyHash);
+    insertStmt.setInt(3, initAmount);
+    insertStmt.execute();
   }
 
   /**
@@ -203,17 +205,44 @@ public class Query extends QueryAbstract {
       return failure;
     }
 
-    // Ensure username is not already in system
-    if (userExists(username)) {
-      return failure;
-    }
+    // Start transaction: read then write
+    try {
+      conn.setAutoCommit(false);
+      // Ensure username is not already in system
+      if (userExists(username)) {
+        conn.commit();
+        conn.setAutoCommit(true);
+        return failure;
+      }
 
-    // Insert new user
-    byte[] saltyHash = PasswordUtils.saltAndHashPassword(password);
-    insertUser(username, saltyHash, initAmount);
-    return success;
+      // Insert new user
+      byte[] saltyHash = PasswordUtils.saltAndHashPassword(password);
+      insertUser(username, saltyHash, initAmount);
+      conn.commit();
+      conn.setAutoCommit(true);
+      return success;
+    } catch (SQLException e) {
+      if (isDeadlock(e)) {
+        try {
+          // Try again!
+          conn.rollback();
+          return transaction_createCustomer(username, password, initAmount);
+        } catch (Exception sqlFailureE) {
+          sqlFailureE.printStackTrace();
+        }
+      }
+    }
+    return failure;
   }
 
+  /**
+   * Parses a ResultSet with all necessary flight attributes starting with the given prefix
+   * into a new Flight instance.
+   * @param resultSet ResultSet with rows of data with necessary flight columns. Must be valid iterator when passed.
+   * @param prefix All selected Flight attribute column names MUST begin with prefix
+   * @return new Flight instance from given ResultSet
+   * @throws SQLException
+   */
   private Flight getFlightFromResult(ResultSet resultSet, String prefix) throws SQLException {
     int result_fid = resultSet.getInt(prefix + "fid");
     int result_dayOfMonth = resultSet.getInt(prefix + "day_of_month");
@@ -376,12 +405,12 @@ public class Query extends QueryAbstract {
    *
    * @see Flight#toString()
    */
-  public String transaction_search(String originCity, String destinationCity, 
+  public String transaction_search(String originCity, String destinationCity,
                                    boolean directFlight, int dayOfMonth,
                                    int numberOfItineraries) {
 
     ArrayList<Itinerary> directItins = getItineraryList(originCity, destinationCity, dayOfMonth,
-                                                       numberOfItineraries, true);
+            numberOfItineraries, true);
     if (directItins == null) {
       return "Failed to search\n";
     }
@@ -411,6 +440,8 @@ public class Query extends QueryAbstract {
       }
       // Add all direct flights we have first
       finalResultItins.addAll(directItins);
+
+      // Then add indirect flights
       for (int i = 0; i < numIndirectItinsToAdd; i++) {
         finalResultItins.add(indirectItins.get(i));
       }
@@ -419,28 +450,29 @@ public class Query extends QueryAbstract {
     }
   }
 
-  boolean reservationDayConflicts(String username, int dayOfMonth) {
-    try {
-      String conflictCount = "SELECT COUNT(R.username) AS conflict_count " +
-                             "FROM Reservations_pricecs AS R, Flights AS F, Users_pricecs AS U " +
-                             "WHERE R.first_fid = F.fid AND " +
-                             "R.username = U.username AND " +
-                             "U.username = ? AND " +
-                             "F.day_of_month = ?";
-      PreparedStatement conflictStmt = conn.prepareStatement(conflictCount);
-      conflictStmt.setString(1, username);
-      conflictStmt.setInt(2, dayOfMonth);
+  /**
+   * Checks if given user already has a reservation on the given day
+   * @param username user to check reservation for
+   * @param dayOfMonth day to check if reserved
+   * @return true if username already has reservation booked on dayOfMonth, false otherwise
+   */
+  boolean reservationDayConflicts(String username, int dayOfMonth) throws SQLException {
 
-      ResultSet result = conflictStmt.executeQuery();
-      result.next();
-      boolean isConflict = result.getInt("conflict_count") > 0;
-      result.close();
-      return isConflict;
-    } catch (Exception e) {
-      e.printStackTrace();
-      return true;
-    }
+    String conflictCount = "SELECT COUNT(R.username) AS conflict_count " +
+            "FROM Reservations_pricecs AS R, Flights AS F, Users_pricecs AS U " +
+            "WHERE R.first_fid = F.fid AND " +
+            "R.username = U.username AND " +
+            "U.username = ? AND " +
+            "F.day_of_month = ?";
+    PreparedStatement conflictStmt = conn.prepareStatement(conflictCount);
+    conflictStmt.setString(1, username);
+    conflictStmt.setInt(2, dayOfMonth);
 
+    ResultSet result = conflictStmt.executeQuery();
+    result.next();
+    boolean isConflict = result.getInt("conflict_count") > 0;
+    result.close();
+    return isConflict;
   }
 
   /**
@@ -448,21 +480,16 @@ public class Query extends QueryAbstract {
    * @return Max id found in table + 1, i.e. 0 if no reservations in table OR
    * -1 if error executing SQL
    */
-  int getNextReservationId() {
-    try {
-      String maxIdQuery = "SELECT COALESCE(MAX(reservation_id),0) AS max_id " +
-              "FROM Reservations_pricecs";
-      PreparedStatement maxIdStmt = conn.prepareStatement(maxIdQuery);
-      ResultSet result = maxIdStmt.executeQuery();
-      result.next();
-      int nextId = result.getInt("max_id") + 1;
-      result.close();
-      return nextId;
-    } catch (Exception e) {
-      return -1;
-      //e.printStackTrace();
-    }
+  int getNextReservationId() throws SQLException {
 
+    String maxIdQuery = "SELECT COALESCE(MAX(reservation_id),0) AS max_id " +
+            "FROM Reservations_pricecs";
+    PreparedStatement maxIdStmt = conn.prepareStatement(maxIdQuery);
+    ResultSet result = maxIdStmt.executeQuery();
+    result.next();
+    int nextId = result.getInt("max_id") + 1;
+    result.close();
+    return nextId;
   }
 
   /**
@@ -473,8 +500,8 @@ public class Query extends QueryAbstract {
    * @param fid2 second flight fid, or null if direct
    * @return true if insert succeeded, false otherwise
    */
-  boolean createReservation(String username, int resId, Integer fid1, Integer fid2) {
-    try {
+  boolean createReservation(String username, int resId, Integer fid1, Integer fid2) throws SQLException {
+
       String insertReservationQuery = "INSERT INTO Reservations_pricecs VALUES (?,?,?,?,?,0)";
       PreparedStatement reservationStmt = conn.prepareStatement(insertReservationQuery);
       reservationStmt.setInt(1, resId);
@@ -490,12 +517,14 @@ public class Query extends QueryAbstract {
 
       reservationStmt.execute();
       return true;
-    } catch (Exception e) {
-      e.printStackTrace();
-      return false;
-    }
   }
 
+  /**
+   * Checks if given flight is full
+   * @param fid fid of flight to check if full
+   * @return true if the given fid's flight is at capacity
+   * @throws SQLException
+   */
   private boolean flightIsFull(int fid) throws SQLException {
     int numReserved = getReservationCountForFLight(fid);
     int capacity = checkFlightCapacity(fid);
@@ -530,45 +559,66 @@ public class Query extends QueryAbstract {
     if (recentItineraryResults.isEmpty() || itineraryToBook == null) {
       return "No such itinerary " + itineraryId + "\n";
     }
-    // 2. Ensure user does not have reservation on that day already
-    int dayToBook = itineraryToBook.flight1.dayOfMonth;
-    if (reservationDayConflicts(loggedInUser, dayToBook)) {
-      return "You cannot book two flights in the same day\n";
-    }
 
-    // 3. Get latest reservation id so we can add 1
-    int nextResId = getNextReservationId();
-    if (nextResId == -1) {
-      return failure;
-    }
-
-    // 4. Ensure not at capacity, Insert reservation
-    Integer firstFid = itineraryToBook.flight1.fid;
-    Integer secondFid = null;
-    if (!itineraryToBook.isDirect) {
-      secondFid = itineraryToBook.flight2.fid;
-    }
-
+    // Transaction: Read max(id), Read reservation count, Write to reservations
     try {
+      conn.setAutoCommit(false);
+
+      // 2. Ensure user does not have reservation on that day already
+      int dayToBook = itineraryToBook.flight1.dayOfMonth;
+      if (reservationDayConflicts(loggedInUser, dayToBook)) {
+        conn.commit();
+        conn.setAutoCommit(true);
+        return "You cannot book two flights in the same day\n";
+      }
+
+      // 3. Get latest reservation id so we can add 1
+      int nextResId = getNextReservationId();
+      if (nextResId == -1) {
+        return failure;
+      }
+
+      // 4. Ensure not at capacity, Insert reservation
+      Integer firstFid = itineraryToBook.flight1.fid;
+      Integer secondFid = null;
+      if (!itineraryToBook.isDirect) {
+        secondFid = itineraryToBook.flight2.fid;
+      }
+
       boolean firstFlightFull = flightIsFull(firstFid);
       boolean secondFlightFull = false;
       if (secondFid != null) {
         secondFlightFull = flightIsFull(secondFid);
       }
       if (firstFlightFull || secondFlightFull) {
+        conn.commit();
+        conn.setAutoCommit(true);
         return failure;
       }
-    } catch (Exception e) {
-      return failure;
+
+      boolean success = createReservation(loggedInUser, nextResId, firstFid, secondFid);
+      if (!success) {
+        conn.commit();
+        conn.setAutoCommit(true);
+        return failure;
+      }
+
+      conn.commit();
+      conn.setAutoCommit(true);
+      return "Booked flight(s), reservation ID: " + nextResId + "\n";
+
+    } catch (SQLException e) {
+      if (isDeadlock(e)) {
+        try {
+          // Try again!
+          conn.rollback();
+          return transaction_book(itineraryId);
+        } catch (Exception sqlFailureE) {
+          sqlFailureE.printStackTrace();
+        }
+      }
     }
-
-
-
-    boolean success = createReservation(loggedInUser, nextResId, firstFid, secondFid);
-    if (!success) {
-      return failure;
-    }
-    return "Booked flight(s), reservation ID: " + nextResId + "\n";
+    return failure;
   }
 
   /**
@@ -591,31 +641,35 @@ public class Query extends QueryAbstract {
       return "Cannot pay, not logged in\n";
     }
 
+    // Transaction: Read is_paid, Read user balance, write to balance, Write to is_paid
     try {
+      conn.setAutoCommit(false);
       // 1. Verify that reservation id exists
       String selIdRowQuery = "SELECT *" +
-                             "FROM Reservations_pricecs " +
-                             "WHERE reservation_id = ? AND " +
-                             "username = ?";
+              "FROM Reservations_pricecs " +
+              "WHERE reservation_id = ? AND " +
+              "username = ?";
       PreparedStatement foundRes = conn.prepareStatement(selIdRowQuery);
       foundRes.setInt(1, reservationId);
       foundRes.setString(2, loggedInUser);
       ResultSet result = foundRes.executeQuery();
       boolean found = result.next();
       if (!found) {
+        conn.commit();
+        conn.setAutoCommit(true);
         return  "Cannot find unpaid reservation " + reservationId + " under user: " + loggedInUser + "\n";
       }
       boolean paid = result.getInt("is_paid") == 1;
 
-
       // 2. Verify user has not already paid for this reservation
       if (paid) {
+        conn.commit();
+        conn.setAutoCommit(true);
         return  "Cannot find unpaid reservation " + reservationId + " under user: " + loggedInUser + "\n";
       }
 
       // 3. Verify user has enough money to pay for reservation
       int balance = getCurrentUserBalance();
-
 
       int fid1 = result.getInt("first_fid");
       int fid2 = result.getInt("second_fid");
@@ -625,6 +679,8 @@ public class Query extends QueryAbstract {
         price += getFlightPrice(fid2);
       }
       if (balance < price) {
+        conn.commit();
+        conn.setAutoCommit(true);
         return "User has only " + balance + " in account but itinerary costs " + price + "\n";
       }
 
@@ -633,23 +689,36 @@ public class Query extends QueryAbstract {
 
       // 5. Set paid boolean to 1 for reservation
       setReservationPaid(reservationId);
+      conn.commit();
+      conn.setAutoCommit(true);
       return "Paid reservation: " + reservationId + " remaining balance: " + (balance - price) + "\n";
-    } catch (Exception e) {
-      e.printStackTrace();
-      return "Failed to pay for reservation " + reservationId + "\n";
+    } catch (SQLException e) {
+      if (isDeadlock(e)) {
+        try {
+          // Try again!
+          conn.rollback();
+          return transaction_pay(reservationId);
+        } catch (Exception sqlFailureE) {
+          sqlFailureE.printStackTrace();
+        }
+      }
     }
-
+    return "Failed to pay for reservation " + reservationId + "\n";
   }
 
+  /**
+   * Gets the List of the current user's booked reservations
+   * @return ArrayList of Reservations booked by the user currently logged in
+   */
   private ArrayList<Reservation> getCurrentReservations() {
     try {
       ArrayList<Reservation> reservations = new ArrayList<>();
       String selResQuery = "SELECT R.*, " + F1_SELECT_ATTRIBUTES + ", " + F2_SELECT_ATTRIBUTES + " " +
-                           "FROM Reservations_pricecs AS R " +
-                           "INNER JOIN FLIGHTS AS F1 ON R.first_fid = F1.fid " +
-                           "LEFT JOIN FLIGHTS AS F2 ON R.second_fid = F2.fid " +
-                           "WHERE R.username = ? " +
-                           "ORDER BY R.reservation_id ASC";
+              "FROM Reservations_pricecs AS R " +
+              "INNER JOIN FLIGHTS AS F1 ON R.first_fid = F1.fid " +
+              "LEFT JOIN FLIGHTS AS F2 ON R.second_fid = F2.fid " +
+              "WHERE R.username = ? " +
+              "ORDER BY R.reservation_id ASC";
       PreparedStatement resStmt = conn.prepareStatement(selResQuery);
       resStmt.setString(1, loggedInUser);
       ResultSet resultSet = resStmt.executeQuery();
@@ -720,6 +789,11 @@ public class Query extends QueryAbstract {
     return sb.toString();
   }
 
+  /**
+   * Utility function to set is_paid boolean to true for a Reservation
+   * @param reservationId id for reservation to set paid
+   * @throws SQLException on SQL execution error
+   */
   private void setReservationPaid(int reservationId) throws SQLException {
     setReservationPaidStmt.clearParameters();
     setReservationPaidStmt.setInt(1, reservationId);
@@ -728,6 +802,11 @@ public class Query extends QueryAbstract {
     setReservationPaidStmt.executeUpdate();
   }
 
+  /**
+   * Sets the balance of the currently logged in user
+   * @param newBalance new balance to set
+   * @throws SQLException on SQL execution error
+   */
   private void setCurrentBalance(int newBalance) throws SQLException {
     setBalanceStmt.clearParameters();
     setBalanceStmt.setInt(1, newBalance);
@@ -736,7 +815,12 @@ public class Query extends QueryAbstract {
     setBalanceStmt.executeUpdate();
   }
 
-
+  /**
+   * Returns the price of a given flight
+   * @param fid fid of flight to retrieve price for
+   * @return price of flight with id fid
+   * @throws SQLException on SQL error
+   */
   private int getFlightPrice(int fid) throws SQLException {
     flightPriceStmt.clearParameters();
     flightPriceStmt.setInt(1, fid);
@@ -749,6 +833,11 @@ public class Query extends QueryAbstract {
     return price;
   }
 
+  /**
+   * Utility function to get the balance of the user currently logged in to this session
+   * @return integer balance of money for current user
+   * @throws SQLException on SQL execution error
+   */
   private int getCurrentUserBalance() throws SQLException {
     userBalanceStmt.clearParameters();
     userBalanceStmt.setString(1, loggedInUser);
@@ -761,6 +850,12 @@ public class Query extends QueryAbstract {
     return balance;
   }
 
+  /**
+   * Utility function to get the number of booked reservations for a given flight fid
+   * @param fid fid of flight to count bookings for
+   * @return number of booked reservations for flight
+   * @throws SQLException on SQL execution error
+   */
   private int getReservationCountForFLight(int fid) throws SQLException {
     reservationCountStmt.clearParameters();
     reservationCountStmt.setInt(1, fid);
@@ -822,12 +917,12 @@ public class Query extends QueryAbstract {
       capacity = cap;
       price = pri;
     }
-    
+
     @Override
     public String toString() {
       return "ID: " + fid + " Day: " + dayOfMonth + " Carrier: " + carrierId + " Number: "
-          + flightNum + " Origin: " + originCity + " Dest: " + destCity + " Duration: " + time
-          + " Capacity: " + capacity + " Price: " + price;
+              + flightNum + " Origin: " + originCity + " Dest: " + destCity + " Duration: " + time
+              + " Capacity: " + capacity + " Price: " + price;
     }
   }
 
@@ -904,7 +999,7 @@ public class Query extends QueryAbstract {
       // both indirect
       else {
         int result = Integer.compare(this.flight1.time + this.flight2.time,
-                                     o.flight1.time + o.flight2.time);
+                o.flight1.time + o.flight2.time);
         if (result == 0) {
           int fidResult = Integer.compare(this.flight1.fid, o.flight1.fid);
           if (fidResult == 0) {
@@ -917,6 +1012,9 @@ public class Query extends QueryAbstract {
     }
   }
 
+  /**
+   * Represents an Itinerary that has been booked by a user
+   */
   class Reservation {
     public String username;
     public Itinerary itinerary;
@@ -938,6 +1036,5 @@ public class Query extends QueryAbstract {
       return out;
     }
   }
-
 
 }
